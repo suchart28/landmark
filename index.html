@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khon Kaen Smart Guide</title>
+    <style>
+        body { font-family: 'Sarabun', sans-serif; text-align: center; padding: 20px; }
+        #startBtn { padding: 15px 30px; font-size: 18px; background: #ff9800; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        #status { margin-top: 20px; font-size: 16px; color: #333; }
+    </style>
+</head>
+<body>
+
+    <h1>พิกัดที่เที่ยวขอนแก่น 🦖</h1>
+    <p>ระบบจะอ่านข้อมูลสถานที่อัตโนมัติเมื่อเข้าใกล้ในระยะ 500 เมตร</p>
+    
+    <button id="startBtn">📍 เริ่มต้นติดตามตำแหน่ง</button>
+    
+    <div id="status">รอการเริ่มต้น...</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
