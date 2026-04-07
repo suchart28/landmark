@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khon Kaen Smart Guide</title>
+    <title>Khon Kaen Smart Guide - Dark Mode</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,63 +17,62 @@
             font-family: 'Prompt', sans-serif; 
             text-align: center; 
             padding: 20px; 
-            background-color: #f7f9fc;
+            background-color: #121212; /* เปลี่ยนพื้นหลังเป็นสีดำเข้ม */
             margin: 0;
-            color: #333;
+            color: #e0e0e0; /* เปลี่ยนสีข้อความทั่วไปเป็นสีเทาสว่าง */
         }
         .container {
             max-width: 500px;
             margin: 0 auto;
-            background: white;
+            background: #1e1e1e; /* พื้นหลังกล่องข้อความเป็นสีเทาเข้ม */
             padding: 40px 20px;
             border-radius: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); /* เพิ่มเงาให้ดูมีมิติบนพื้นดำ */
         }
-        /* จัดการโลโก้ */
         .logo {
             width: 100%;
             max-width: 280px;
             height: auto;
             margin-bottom: 30px;
         }
-        /* ปรับขนาดตัวอักษรให้ใหญ่ขึ้นสำหรับมือถือ */
         h1 {
             font-size: 28px;
             font-weight: 600;
             margin-top: 0;
             margin-bottom: 15px;
+            color: #ffffff; /* สีหัวข้อเป็นสีขาวสนิท */
         }
         p {
             font-size: 20px;
             line-height: 1.5;
-            color: #555;
+            color: #b0b0b0; /* สีข้อความรองเป็นสีเทา */
             margin-bottom: 40px;
         }
-        /* ปรับปุ่มให้กดง่ายเต็มจอ */
         #startBtn { 
             width: 100%;
             padding: 20px; 
             font-size: 24px; 
             font-family: 'Prompt', sans-serif;
             font-weight: 600;
-            background: #e65100; /* สีส้มเข้มให้เข้ากับธีม */
+            background: #ff7043; /* ปรับสีส้มให้สว่างขึ้นสำหรับ Dark Mode */
             color: white; 
             border: none; 
             border-radius: 12px; 
             cursor: pointer; 
-            box-shadow: 0 6px 15px rgba(230, 81, 0, 0.3);
+            box-shadow: 0 6px 15px rgba(255, 112, 67, 0.25);
             transition: transform 0.2s, background 0.2s;
         }
         #startBtn:active {
             transform: scale(0.98);
-            background: #bf360c;
+            background: #f4511e;
         }
         #status { 
             margin-top: 30px; 
             font-size: 20px; 
-            color: #444; 
+            color: #cccccc; 
             padding: 20px;
-            background: #edf2f7;
+            background: #2c2c2c; /* พื้นหลังกล่องสถานะ */
+            border: 1px solid #444; /* เพิ่มเส้นขอบบางๆ ให้กล่องสถานะ */
             border-radius: 12px;
             min-height: 80px;
             display: flex;
