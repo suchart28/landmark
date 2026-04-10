@@ -63,23 +63,36 @@ function startTracking() {
             
             document.getElementById('status').innerHTML = `พิกัดปัจจุบัน:<br>Lat: ${userLat.toFixed(5)}<br>Lng: ${userLng.toFixed(5)}`;
 
+            let closestLocation = null;
+            let minDistance = Infinity;
+
+            // ค้นหาสถานที่ที่อยู่ในระยะและใกล้ที่สุด
             locations.forEach(loc => {
                 const distance = getDistance(userLat, userLng, parseFloat(loc.lat), parseFloat(loc.lng));
                 
-                // ถ้าระยะไม่เกิน 500m และยังไม่ได้อ่าน
-                if (distance <= 500 && !announcedPlaces.has(loc.id)) {
-                    announcedPlaces.add(loc.id); 
-                    
-                    speak(loc.info_th, 'th-TH');
-                    speak(loc.info_en, 'en-US');
-                    speak(loc.info_cn, 'zh-CN');
+                // ถ้าระยะไม่เกิน 100 เมตร ให้เช็คว่าใกล้กว่าที่เคยเจอในรอบนี้หรือไม่
+                if (distance <= 100) {
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestLocation = loc;
+                    }
                 }
                 
-                // ถ้าระยะเกิน 1000m ให้ลบออกจากประวัติ เพื่อให้กลับมาอ่านซ้ำได้
-                if (distance > 1000 && announcedPlaces.has(loc.id)) {
+                // ถ้าระยะห่างออกไปเกิน 200m ให้ลบออกจากประวัติ เพื่อให้กลับมาอ่านซ้ำได้เมื่อเดินกลับมา
+                // (ใช้ระยะ 200m เป็น Buffer เผื่อ GPS แกว่ง จะได้ไม่อ่านซ้ำไปมา)
+                if (distance > 200 && announcedPlaces.has(loc.id)) {
                     announcedPlaces.delete(loc.id);
                 }
             });
+
+            // หากพบสถานที่ที่ใกล้ที่สุดในระยะ 100m และยังไม่ได้อ่าน
+            if (closestLocation && !announcedPlaces.has(closestLocation.id)) {
+                announcedPlaces.add(closestLocation.id); 
+                
+                speak(closestLocation.info_th, 'th-TH');
+                speak(closestLocation.info_en, 'en-US');
+                speak(closestLocation.info_cn, 'zh-CN');
+            }
         },
         (error) => {
             document.getElementById('status').innerText = "ไม่สามารถหาตำแหน่งได้ กรุณาเปิด GPS";
