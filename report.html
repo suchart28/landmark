@@ -145,11 +145,27 @@
         }
 
         // 1. อัปเดตตัวเลขสถิติ
-        function updateStats(data) {
-            document.getElementById('totalVisitors').innerText = data.length;
-            const avg = data.reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0) / data.length;
-            document.getElementById('avgDuration').innerText = avg.toFixed(1);
-        }
+       function updateStats(data) {
+    document.getElementById('totalVisitors').innerText = data.length;
+    
+    // ถ้ายังไม่มีคนเข้าใช้งานเลย ให้แสดง 0
+    if (data.length === 0) {
+        document.getElementById('avgDuration').innerText = "0.0";
+        return;
+    }
+
+    // รวมเวลาทั้งหมด (หน่วยเป็นวินาที)
+    const totalSeconds = data.reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0);
+    
+    // หาค่าเฉลี่ยเป็นวินาที
+    const avgSeconds = totalSeconds / data.length;
+    
+    // แปลงวินาทีเป็นนาที (หาร 60)
+    const avgMinutes = avgSeconds / 60;
+    
+    // แสดงผลทศนิยม 1 ตำแหน่ง (เช่น 1.5 นาที)
+    document.getElementById('avgDuration').innerText = avgMinutes.toFixed(1);
+}
 
         // 2. แผนที่แสดงจุดที่ผู้ใช้อยู่
         function renderMapMarkers(data) {
