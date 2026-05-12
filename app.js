@@ -13,7 +13,7 @@ const firebaseConfig = {
     measurementId: "G-2LNYQS3M52"
 };
 
-// เริ่มต้น Firebase App และ Database (Firestore) [cite: 3]
+// เริ่มต้น Firebase App และ Database (Firestore)
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
@@ -90,7 +90,7 @@ async function startFirebaseSession() {
 // ระบบอัปเดตข้อมูลพิกัดและระยะเวลาการใช้งานลง Firebase ทุกๆ 15 วินาที
 setInterval(async () => {
     if (sessionDocRef && currentLat && currentLng && sessionStartTime) {
-        const duration = Math.floor((new Date() - sessionStartTime) / 1000); // แปลงเป็นวินาที
+        const duration = Math.floor((new Date() - sessionStartTime) / 1000); 
         try {
             await updateDoc(sessionDocRef, {
                 last_lat: currentLat,
@@ -132,23 +132,26 @@ function startTracking() {
             locations.forEach(loc => {
                 const distance = getDistance(currentLat, currentLng, parseFloat(loc.lat), parseFloat(loc.lng));
                 
-                if (distance <= 100) {
+                // --- ปรับระยะที่ 1: ตรวจสอบรัศมี 50 เมตร ---
+                if (distance <= 50) {
                     if (distance < minDistance) {
                         minDistance = distance;
                         closestLocation = loc;
                     }
                 }
                 
-                if (distance > 200 && announcedPlaces.has(loc.id)) {
+                // --- ปรับระยะที่ 2: ล้างความจำเมื่อห่างออกไปเกิน 80 เมตร ---
+                // หากยังอยู่ในระยะ 50m (หรือแกว่งไปมาไม่เกิน 80m) จะไม่อ่านซ้ำเด็ดขาด
+                if (distance > 80 && announcedPlaces.has(loc.id)) {
                     announcedPlaces.delete(loc.id);
                 }
             });
 
-            // หากพบสถานที่ที่ใกล้ที่สุดในระยะ 100m และยังไม่ได้อ่าน
+            // หากพบสถานที่ที่ใกล้ที่สุดในระยะ 50m และยังไม่ได้อ่าน
             if (closestLocation && !announcedPlaces.has(closestLocation.id)) {
+                // บันทึกไว้ใน Set เพื่อกันการอ่านซ้ำตราบใดที่ยังไม่เดินออกนอกระยะ 80m
                 announcedPlaces.add(closestLocation.id); 
                 
-                // --- 1. จัดการคิวเสียงทับซ้อน ---
                 // ยกเลิกข้อความเก่าที่ยังพูดไม่จบออกก่อน ค่อยเริ่มอ่านสถานที่ใหม่ที่ใกล้กว่า
                 window.speechSynthesis.cancel(); 
                 
@@ -164,7 +167,7 @@ function startTracking() {
     );
 }
 
-// ผูก Event ปุ่มกด (สำหรับ Module ต้องเขียนผูก Event แบบนี้)
+// ผูก Event ปุ่มกด
 document.getElementById('startBtn').addEventListener('click', () => {
     document.getElementById('startBtn').style.display = 'none';
     startTracking();
