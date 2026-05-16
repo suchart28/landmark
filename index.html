@@ -18,6 +18,7 @@
             background-color: #22b800; 
             margin: 0;
             color: #e0e0e0; 
+            transition: background-color 0.3s;
         }
         .container {
             max-width: 500px;
@@ -26,76 +27,92 @@
             padding: 40px 20px;
             border-radius: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+            transition: background-color 0.3s;
         }
+
+        /* ----------------------------------- */
+        /* 1. อนิเมชันเรดาร์ (Radar Pulse)     */
+        /* ----------------------------------- */
+        .radar-container {
+            position: relative;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            width: 100%;
+            height: 280px; /* จองพื้นที่ให้พอดีกับโลโก้ */
+        }
+        
         .logo {
+            position: relative;
+            z-index: 2; /* ให้อยู่ด้านหน้าคลื่น */
             width: 100%;
             max-width: 280px;
             height: auto;
-            margin-bottom: 30px;
         }
-        h1 {
-            font-size: 28px;
-            font-weight: 600;
-            margin-top: 0;
-            margin-bottom: 15px;
-            color: #ffffff; 
+
+        .radar-pulse {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            z-index: 1;
+            /* ปิดการแสดงผลไว้ก่อน จะเริ่มทำงานเมื่อกดปุ่ม */
+            display: none; 
         }
-        p {
-            font-size: 20px;
-            line-height: 1.5;
-            color: #ffffff;
-            margin-bottom: 20px;
+
+        /* เมื่อใส่คลาส .active ให้คลื่นเริ่มทำงาน */
+        .radar-container.active .radar-pulse {
+            display: block;
+            animation: pulse 2s infinite ease-out;
         }
-        /* CSS สำหรับแถบแจ้งเตือน */
-        .warning-box {
-            background: rgba(255, 193, 7, 0.15);
-            border: 1px solid #ffc107;
-            color: #ffd54f;
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 16px;
-            margin-bottom: 30px;
-            text-align: left;
-            line-height: 1.4;
+
+        /* คลื่นลูกที่สองให้ทำงานช้ากว่าลูกแรก 1 วินาที */
+        .radar-container.active .radar-pulse:nth-child(2) {
+            animation-delay: 1s;
         }
-        #startBtn { 
-            width: 100%;
-            padding: 20px; 
-            font-size: 24px; 
-            font-family: 'Prompt', sans-serif;
-            font-weight: 600;
-            background: #ff7043; 
-            color: white; 
-            border: none; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            box-shadow: 0 6px 15px rgba(255, 112, 67, 0.25);
-            transition: transform 0.2s, background 0.2s;
+
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
         }
-        #startBtn:active {
-            transform: scale(0.98);
-            background: #f4511e;
+
+        /* ----------------------------------- */
+        /* 2. อนิเมชันกระพริบตอนเจอพิกัด       */
+        /* ----------------------------------- */
+        @keyframes flash-success {
+            0% { background-color: #22b800; }
+            25% { background-color: #ffffff; } /* กระพริบขาว */
+            50% { background-color: #22b800; }
+            75% { background-color: #ffffff; } /* กระพริบขาว */
+            100% { background-color: #22b800; }
         }
-        #status { 
-            margin-top: 30px; 
-            font-size: 20px; 
-            color: #cccccc; 
-            padding: 20px;
-            background: #2c2c2c; 
-            border: 1px solid #444; 
-            border-radius: 12px;
-            min-height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
+
+        /* ใช้คลาสนี้สวมเข้าไปที่ body และ .container ชั่วคราว */
+        body.found-location, 
+        .container.found-location {
+            animation: flash-success 1.5s ease-in-out;
         }
+
+        /* สไตล์เดิมที่เหลือของคุณ... */
+        h1 { font-size: 28px; font-weight: 600; margin-top: 0; margin-bottom: 15px; color: #ffffff; }
+        p { font-size: 20px; line-height: 1.5; color: #ffffff; margin-bottom: 20px; }
+        .warning-box { background: rgba(255, 193, 7, 0.15); border: 1px solid #ffc107; color: #ffd54f; padding: 15px; border-radius: 12px; font-size: 16px; margin-bottom: 30px; text-align: left; line-height: 1.4; }
+        #startBtn { width: 100%; padding: 20px; font-size: 24px; font-family: 'Prompt', sans-serif; font-weight: 600; background: #ff7043; color: white; border: none; border-radius: 12px; cursor: pointer; box-shadow: 0 6px 15px rgba(255, 112, 67, 0.25); transition: transform 0.2s, background 0.2s; }
+        #startBtn:active { transform: scale(0.98); background: #f4511e; }
+        #status { margin-top: 30px; font-size: 20px; color: #cccccc; padding: 20px; background: #2c2c2c; border: 1px solid #444; border-radius: 12px; min-height: 80px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <img src="bussing.png" alt="Bussing Transit Logo" class="logo">
+    <div class="container" id="main-container">
+        
+        <div class="radar-container" id="radarWrap">
+            <div class="radar-pulse"></div>
+            <div class="radar-pulse"></div>
+            <img src="bussing.png" alt="Bussing Transit Logo" class="logo">
+        </div>
         
         <h1>เว่าให้ฟังแหน่</h1>
         <p>ระบบจะพูดบรรยายข้อมูลนิทรรศการอัตโนมัติ<br>เมื่อผู้ใช้เข้าใกล้ในระยะ 50 เมตร</p>
@@ -110,7 +127,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    
     <script type="module" src="app.js"></script>
 </body>
 </html>
