@@ -155,6 +155,18 @@ function startTracking() {
                 // ยกเลิกข้อความเก่าที่ยังพูดไม่จบออกก่อน ค่อยเริ่มอ่านสถานที่ใหม่ที่ใกล้กว่า
                 window.speechSynthesis.cancel(); 
                 
+                // ----------------------------------------------------
+                // เพิ่มคำสั่งให้พื้นหลังกระพริบเมื่อเข้าถึงรัสมีพิกัดสถานที่
+                document.body.classList.add('found-location');
+                document.getElementById('main-container').classList.add('found-location');
+                
+                // ตั้งเวลาลบคลาสออกหลังจากกระพริบเสร็จ (1.5 วินาที ตาม CSS)
+                setTimeout(() => {
+                    document.body.classList.remove('found-location');
+                    document.getElementById('main-container').classList.remove('found-location');
+                }, 1500);
+                // ----------------------------------------------------
+                
                 speak(closestLocation.info_th, 'th-TH');
                 speak(closestLocation.info_en, 'en-US');
                 speak(closestLocation.info_cn, 'zh-CN');
@@ -170,6 +182,10 @@ function startTracking() {
 // ผูก Event ปุ่มกด
 document.getElementById('startBtn').addEventListener('click', () => {
     document.getElementById('startBtn').style.display = 'none';
+    
+    // สั่งให้เรดาร์เริ่มทำงานตอนกดปุ่ม
+    document.getElementById('radarWrap').classList.add('active');
+    
     startTracking();
 });
 
