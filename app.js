@@ -21,7 +21,8 @@ const SHEET_ID = '1W2Yj2aR6dsv0GHOIYwIPA-B9d9RAN9jOgKoDAXkbb70';
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 
 let locations = [];
-let announcedPlaces = new Set();
+let announcedPlaces = new Set(); // สำหรับจัดการการอ่านเสียง (ลบได้เมื่อห่าง 80m)
+let visitedPlaces = new Set();   // สำหรับนับความคืบหน้า (จำถาวรในเซสชันนี้)
 let watchId = null;
 
 // Firebase Session
@@ -43,6 +44,10 @@ function fetchLocations() {
         complete: function(results) {
             locations = results.data.filter(loc => loc.lat && loc.lng);
             document.getElementById('status').innerText = `โหลดข้อมูลพร้อมแล้ว ${locations.length} จุด`;
+            
+            // อัปเดตตัวเลขจำนวนจุดทั้งหมด
+            const totalEl = document.getElementById('totalCount');
+            if(totalEl) totalEl.innerText = locations.length;
         },
         error: function(err) {
             document.getElementById('status').innerText = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
@@ -151,7 +156,7 @@ function startTracking() {
             locations.forEach(loc => {
                 const distance = getDistance(currentLat, currentLng, parseFloat(loc.lat), parseFloat(loc.lng));
                 
-                // หาจุดที่ใกล้ที่สุดสำหรับเป้าหมายลูกศรและระยะทาง
+                // หาจุดที่ใกล้ที่สุดเสมอ สำหรับชี้ลูกศรและคำนวณระยะทาง
                 if (distance < minAbsoluteDistance) {
                     minAbsoluteDistance = distance;
                     absoluteNearestLoc = loc;
@@ -165,7 +170,7 @@ function startTracking() {
                     }
                 }
                 
-                // ล้างความจำเมื่อห่างเกิน 80 เมตร
+                // ล้างความจำเสียงเมื่อห่างเกิน 80 เมตร (เพื่อให้กลับมาฟังซ้ำได้)
                 if (distance > 80 && announcedPlaces.has(loc.id)) {
                     announcedPlaces.delete(loc.id);
                 }
@@ -187,9 +192,16 @@ function startTracking() {
                 }
             }
 
-            // จัดการแจ้งเตือนเสียงและพื้นหลังกระพริบ
+            // จัดการแจ้งเตือนเสียง, พื้นหลังกระพริบ, และนับ Progress
             if (closestLocation && !announcedPlaces.has(closestLocation.id)) {
+                
                 announcedPlaces.add(closestLocation.id); 
+                
+                // เพิ่มการนับลงใน Progress แบบถาวร
+                visitedPlaces.add(closestLocation.id);
+                const visitedEl = document.getElementById('visitedCount');
+                if(visitedEl) visitedEl.innerText = visitedPlaces.size;
+
                 window.speechSynthesis.cancel(); 
                 
                 document.body.classList.add('found-location');
@@ -220,6 +232,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     document.getElementById('compassWrap')?.classList.add('active');
     document.getElementById('radarWrap')?.classList.add('active');
     document.getElementById('distanceDisplay')?.classList.add('active');
+    document.getElementById('progressWrap')?.classList.add('active');
 
     function handleOrientation(event) {
         let heading = event.webkitCompassHeading || Math.abs(event.alpha - 360);
@@ -247,4 +260,5 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     startTracking();
 });
 
+// เริ่มต้นดึงข้อมูลทันทีเมื่อเปิดหน้าเว็บ
 fetchLocations();
