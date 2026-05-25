@@ -30,19 +30,19 @@ let sessionStartTime = null;
 let currentLat = null;
 let currentLng = null;
 
-// เข็มทิศนำทาง (Compass)
+// Compass & Navigation
 let currentHeading = 0;
 let targetLat = null;
 let targetLng = null;
 
-// 1. โหลดข้อมูล
+// โหลดข้อมูล
 function fetchLocations() {
     Papa.parse(CSV_URL, {
         download: true,
         header: true,
         complete: function(results) {
             locations = results.data.filter(loc => loc.lat && loc.lng);
-            document.getElementById('status').innerText = `โหลดข้อมูลสำเร็จ ${locations.length} สถานที่`;
+            document.getElementById('status').innerText = `โหลดข้อมูลพร้อมแล้ว ${locations.length} จุด`;
         },
         error: function(err) {
             document.getElementById('status').innerText = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
@@ -50,21 +50,19 @@ function fetchLocations() {
     });
 }
 
-// 2. คำนวณระยะทาง
+// คำนวณระยะทาง
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
     const φ1 = lat1 * Math.PI/180;
     const φ2 = lat2 * Math.PI/180;
     const Δφ = (lat2-lat1) * Math.PI/180;
     const Δλ = (lon2-lon1) * Math.PI/180;
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c; 
 }
 
-// 3. คำนวณมุมทิศทาง (Bearing)
+// คำนวณองศาทิศทาง
 function getBearing(lat1, lon1, lat2, lon2) {
     const toRad = Math.PI / 180;
     const toDeg = 180 / Math.PI;
@@ -77,7 +75,7 @@ function getBearing(lat1, lon1, lat2, lon2) {
     return (bearing + 360) % 360; 
 }
 
-// 4. อัปเดตลูกศร
+// หมุนลูกศร
 function updateArrow() {
     if (targetLat === null || targetLng === null || currentLat === null || currentLng === null) return;
     const bearing = getBearing(currentLat, currentLng, targetLat, targetLng);
@@ -88,7 +86,7 @@ function updateArrow() {
     }
 }
 
-// 5. อ่านออกเสียง
+// ระบบพูดออกเสียง
 function speak(text, lang) {
     if (!text) return;
     const utterance = new SpeechSynthesisUtterance(text);
@@ -97,7 +95,7 @@ function speak(text, lang) {
     window.speechSynthesis.speak(utterance);
 }
 
-// 6. Firebase Logs
+// บันทึก Firebase
 async function startFirebaseSession() {
     sessionStartTime = new Date();
     try {
@@ -127,14 +125,14 @@ setInterval(async () => {
     }
 }, 15000);
 
-// 7. ติดตามพิกัด
+// เริ่มเช็คพิกัด
 function startTracking() {
     if (!navigator.geolocation) {
-        alert("เบราว์เซอร์ของคุณไม่รองรับ GPS");
+        alert("เบราว์เซอร์ไม่รองรับ GPS");
         return;
     }
 
-    document.getElementById('status').innerText = "กำลังค้นหาตำแหน่งของคุณ...";
+    document.getElementById('status').innerText = "กำลังค้นหาตำแหน่ง...";
     speak(" ", "th-TH");
     startFirebaseSession();
 
@@ -153,12 +151,13 @@ function startTracking() {
             locations.forEach(loc => {
                 const distance = getDistance(currentLat, currentLng, parseFloat(loc.lat), parseFloat(loc.lng));
                 
-                // หาจุดใกล้สุดเสมอเพื่อชี้เป้าหมาย
+                // หาจุดที่ใกล้ที่สุดสำหรับเป้าหมายลูกศรและระยะทาง
                 if (distance < minAbsoluteDistance) {
                     minAbsoluteDistance = distance;
                     absoluteNearestLoc = loc;
                 }
                 
+                // เช็คระยะ 50 เมตรเพื่อเตรียมอ่านออกเสียง
                 if (distance <= 50) {
                     if (distance < minDistance) {
                         minDistance = distance;
@@ -166,19 +165,29 @@ function startTracking() {
                     }
                 }
                 
+                // ล้างความจำเมื่อห่างเกิน 80 เมตร
                 if (distance > 80 && announcedPlaces.has(loc.id)) {
                     announcedPlaces.delete(loc.id);
                 }
             });
 
-            // อัปเดตเป้าหมายของลูกศร
+            // อัปเดตลูกศรและตัวเลขระยะทาง
             if (absoluteNearestLoc) {
                 targetLat = parseFloat(absoluteNearestLoc.lat);
                 targetLng = parseFloat(absoluteNearestLoc.lng);
                 updateArrow(); 
+                
+                const distEl = document.getElementById('distanceValue');
+                if (distEl) {
+                    if (minAbsoluteDistance >= 1000) {
+                        distEl.innerText = (minAbsoluteDistance / 1000).toFixed(2) + " กม.";
+                    } else {
+                        distEl.innerText = Math.round(minAbsoluteDistance) + " ม.";
+                    }
+                }
             }
 
-            // จัดการการแจ้งเตือนเสียง
+            // จัดการแจ้งเตือนเสียงและพื้นหลังกระพริบ
             if (closestLocation && !announcedPlaces.has(closestLocation.id)) {
                 announcedPlaces.add(closestLocation.id); 
                 window.speechSynthesis.cancel(); 
@@ -197,24 +206,21 @@ function startTracking() {
             }
         },
         (error) => {
-            document.getElementById('status').innerText = "ไม่สามารถหาตำแหน่งได้ กรุณาเปิด GPS";
+            document.getElementById('status').innerText = "ไม่สามารถระบุตำแหน่งได้ กรุณาเปิด GPS";
         },
         { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
     );
 }
 
-// 8. ทำงานเมื่อกดปุ่มเริ่ม
+// ทำงานเมื่อกดปุ่มเริ่ม
 document.getElementById('startBtn').addEventListener('click', async () => {
     
-    // บังคับแสดงลูกศรและเรดาร์ทันทีเมื่อกดปุ่ม
+    // ซ่อนปุ่ม และเปิดแสดงองค์ประกอบ UI ทั้งหมด
     document.getElementById('startBtn').style.display = 'none';
-    const compassWrap = document.getElementById('compassWrap');
-    if(compassWrap) compassWrap.classList.add('active');
-    
-    const radarWrap = document.getElementById('radarWrap');
-    if(radarWrap) radarWrap.classList.add('active');
+    document.getElementById('compassWrap')?.classList.add('active');
+    document.getElementById('radarWrap')?.classList.add('active');
+    document.getElementById('distanceDisplay')?.classList.add('active');
 
-    // ฟังก์ชันอ่านทิศทาง
     function handleOrientation(event) {
         let heading = event.webkitCompassHeading || Math.abs(event.alpha - 360);
         if (heading) {
@@ -229,8 +235,6 @@ document.getElementById('startBtn').addEventListener('click', async () => {
             const permissionState = await DeviceOrientationEvent.requestPermission();
             if (permissionState === 'granted') {
                 window.addEventListener('deviceorientation', handleOrientation);
-            } else {
-                console.log("Permission denied");
             }
         } else {
             window.addEventListener('deviceorientationabsolute', handleOrientation) || 
@@ -240,9 +244,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         console.warn("ไม่สามารถใช้งานเข็มทิศได้ หรือไม่ได้รันบน HTTPS");
     }
 
-    // เริ่มหาพิกัด
     startTracking();
 });
 
-// เริ่มดึงข้อมูล
 fetchLocations();
