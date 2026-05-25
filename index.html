@@ -38,64 +38,88 @@
             display: inline-flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             width: 100%;
-            height: 280px; /* จองพื้นที่ให้พอดีกับโลโก้ */
+            height: 280px; 
         }
         
         .logo {
             position: relative;
-            z-index: 2; /* ให้อยู่ด้านหน้าคลื่น */
+            z-index: 2; 
             width: 100%;
-            max-width: 280px;
+            max-width: 220px;
             height: auto;
         }
 
         .radar-pulse {
             position: absolute;
-            width: 200px;
-            height: 200px;
+            width: 220px;
+            height: 220px;
             background: rgba(255, 255, 255, 0.4);
             border-radius: 50%;
             z-index: 1;
-            /* ปิดการแสดงผลไว้ก่อน จะเริ่มทำงานเมื่อกดปุ่ม */
             display: none; 
         }
 
-        /* เมื่อใส่คลาส .active ให้คลื่นเริ่มทำงาน */
         .radar-container.active .radar-pulse {
             display: block;
             animation: pulse 2s infinite ease-out;
         }
 
-        /* คลื่นลูกที่สองให้ทำงานช้ากว่าลูกแรก 1 วินาที */
         .radar-container.active .radar-pulse:nth-child(2) {
             animation-delay: 1s;
         }
 
         @keyframes pulse {
             0% { transform: scale(0.8); opacity: 1; }
-            100% { transform: scale(2); opacity: 0; }
+            100% { transform: scale(2.2); opacity: 0; }
         }
 
         /* ----------------------------------- */
-        /* 2. อนิเมชันกระพริบตอนเจอพิกัด       */
+        /* 2. เข็มทิศนำทาง (Navigation Arrow)  */
         /* ----------------------------------- */
-        @keyframes flash-success {
+        .compass-container {
+            margin: 20px auto;
+            width: 110px;
+            height: 110px;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 50%;
+            display: none; 
+            justify-content: center;
+            align-items: center;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .compass-container.active {
+            display: flex;
+        }
+
+        #navArrow {
+            font-size: 50px;
+            color: #ffffff;
+            transition: transform 0.3s ease-out; 
+            transform: rotate(0deg);
+        }
+
+        /* ----------------------------------- */
+        /* 3. อนิเมชันกระพริบตอนเจอพิกัด       */
+        /* ----------------------------------- */
+        @keyframes flash-green {
             0% { background-color: #22b800; }
-            25% { background-color: #ffffff; } /* กระพริบขาว */
+            25% { background-color: #ffffff; } 
             50% { background-color: #22b800; }
-            75% { background-color: #ffffff; } /* กระพริบขาว */
+            75% { background-color: #ffffff; } 
             100% { background-color: #22b800; }
         }
 
-        /* ใช้คลาสนี้สวมเข้าไปที่ body และ .container ชั่วคราว */
-        body.found-location, 
+        body.found-location,
         .container.found-location {
-            animation: flash-success 1.5s ease-in-out;
+            animation: flash-green 1.5s ease-in-out;
         }
 
-        /* สไตล์เดิมที่เหลือของคุณ... */
+        /* ----------------------------------- */
+        /* UI Components                       */
+        /* ----------------------------------- */
         h1 { font-size: 28px; font-weight: 600; margin-top: 0; margin-bottom: 15px; color: #ffffff; }
         p { font-size: 20px; line-height: 1.5; color: #ffffff; margin-bottom: 20px; }
         .warning-box { background: rgba(255, 193, 7, 0.15); border: 1px solid #ffc107; color: #ffd54f; padding: 15px; border-radius: 12px; font-size: 16px; margin-bottom: 30px; text-align: left; line-height: 1.4; }
@@ -114,11 +138,15 @@
             <img src="bussing.png" alt="Bussing Transit Logo" class="logo">
         </div>
         
+        <div class="compass-container" id="compassWrap">
+            <div id="navArrow">⬆️</div> 
+        </div>
+        
         <h1>เว่าให้ฟังแหน่</h1>
         <p>ระบบจะพูดบรรยายข้อมูลนิทรรศการอัตโนมัติ<br>เมื่อผู้ใช้เข้าใกล้ในระยะ 50 เมตร</p>
 
         <div class="warning-box">
-            ⚠️ <b>คำแนะนำ:</b> กรุณาเปิดหน้าจอนี้ทิ้งไว้และไม่สลับแอปพลิเคชัน เพื่อให้ระบบ GPS ติดตามตำแหน่งและอ่านออกเสียงได้อย่างต่อเนื่อง
+            ⚠️ <b>คำแนะนำ:</b> กรุณาเปิดหน้าจอนี้ทิ้งไว้และไม่สลับแอปพลิเคชัน เพื่อให้ระบบ GPS และเซ็นเซอร์เข็มทิศทำงานได้อย่างต่อเนื่อง ข้อมูลระบบนำทางด้วยเข็มทิศจำเป็นต้องเรียกใช้งานผ่านโปรโตคอลความปลอดภัย (HTTPS) เท่านั้น
         </div>
         
         <button id="startBtn">📍 เริ่มต้นติดตามตำแหน่ง</button>
