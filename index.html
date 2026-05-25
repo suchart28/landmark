@@ -105,14 +105,17 @@
         #navArrow svg {
             width: 40px;
             height: 40px;
-            color: #22b800; /* สีเขียวให้ตัดกับพื้นหลังมืด */
+            color: #22b800;
         }
 
+        /* ----------------------------------- */
+        /* 3. ข้อความแสดงระยะทาง                */
+        /* ----------------------------------- */
         .distance-text {
             font-family: 'Chakra Petch', sans-serif;
             font-size: 20px;
             color: #a5d6a7; 
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             font-weight: 600;
             display: none;
         }
@@ -122,7 +125,34 @@
         }
 
         /* ----------------------------------- */
-        /* 3. อนิเมชันกระพริบตอนเจอพิกัด       */
+        /* 4. ป้ายแสดงความคืบหน้า (Progress)     */
+        /* ----------------------------------- */
+        .progress-container {
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 18px;
+            color: #ffffff;
+            background: rgba(34, 184, 0, 0.2);
+            border: 1px solid rgba(34, 184, 0, 0.5);
+            padding: 8px 20px;
+            border-radius: 30px;
+            display: none; 
+            margin: 0 auto 25px auto;
+            width: fit-content;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        .progress-container.active {
+            display: block;
+        }
+        
+        .progress-highlight {
+            color: #a5d6a7;
+            font-weight: 600;
+            font-size: 24px;
+        }
+
+        /* ----------------------------------- */
+        /* 5. อนิเมชันกระพริบตอนเจอพิกัด       */
         /* ----------------------------------- */
         @keyframes flash-green {
             0% { background-color: #121212; }
@@ -146,14 +176,7 @@
         /* ----------------------------------- */
         /* UI Components                       */
         /* ----------------------------------- */
-        h1 { 
-            font-family: 'Chakra Petch', sans-serif; 
-            font-size: 32px; 
-            font-weight: 600; 
-            margin-top: 0; 
-            margin-bottom: 10px; 
-            color: #ffffff; 
-        }
+        h1 { font-family: 'Chakra Petch', sans-serif; font-size: 32px; font-weight: 600; margin-top: 0; margin-bottom: 10px; color: #ffffff; }
         p { font-size: 16px; line-height: 1.5; color: #cccccc; margin-bottom: 20px; }
         .warning-box { background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; color: #ffd54f; padding: 15px; border-radius: 12px; font-size: 14px; margin-bottom: 25px; text-align: left; line-height: 1.5; }
         #startBtn { width: 100%; padding: 20px; font-size: 22px; font-family: 'Prompt', sans-serif; font-weight: 600; background: #ff7043; color: white; border: none; border-radius: 12px; cursor: pointer; box-shadow: 0 6px 15px rgba(255, 112, 67, 0.25); transition: transform 0.2s, background 0.2s; }
@@ -182,6 +205,10 @@
 
         <div class="distance-text" id="distanceDisplay">
             เป้าหมาย: <span id="distanceValue">-- ม.</span>
+        </div>
+
+        <div class="progress-container" id="progressWrap">
+            📍 สำรวจแล้ว: <span id="visitedCount" class="progress-highlight">0</span> / <span id="totalCount">0</span> จุด
         </div>
         
         <h1>เว่าให้ฟังแหน่</h1>
