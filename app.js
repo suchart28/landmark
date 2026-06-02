@@ -1,32 +1,38 @@
-// Import Firebase Functions 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
-import { getFirestore, collection, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+// Import Firebase Functions (Version 12.13.0)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getFirestore, collection, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js";
 
-// Firebase Config ของคุณ
+// Firebase Config
 const firebaseConfig = {
-    apiKey: "AIzaSyCJ-E8bN9nz_BWKTNofz7ccuVoo6m8LyAU",
-    authDomain: "suchart-915bd.firebaseapp.com",
-    projectId: "suchart-915bd",
-    storageBucket: "suchart-915bd.firebasestorage.app",
-    messagingSenderId: "94380768305",
-    appId: "1:94380768305:web:c4705ea3e0d53e1b61a910",
-    measurementId: "G-2LNYQS3M52"
+    apiKey: "AIzaSyDMptdLpLEdbeVFKZj82M0gyoV2m_2y5Pk",
+    authDomain: "suchartstudio-9a78d.firebaseapp.com",
+    databaseURL: "https://suchartstudio-9a78d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "suchartstudio-9a78d",
+    storageBucket: "suchartstudio-9a78d.firebasestorage.app",
+    messagingSenderId: "953369646185",
+    appId: "1:953369646185:web:33c814ecf964b7c96ebef8",
+    measurementId: "G-BPSW8BJCTQ"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const analytics = getAnalytics(app);
 
-// Google Sheet Setup
-const SHEET_ID = '1W2Yj2aR6dsv0GHOIYwIPA-B9d9RAN9jOgKoDAXkbb70'; 
+// Google Sheet Setup (อัปเดต ID ใหม่)
+const SHEET_ID = '1WQ790i1c8STFzWZEDtuK_NXg202lqEIh4OHfQ8qYGHo'; 
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 
 let locations = [];
-let announcedPlaces = new Set(); // จัดการการอ่านเสียงสปีช (ลบเมื่อห่างเกิน 80m)
-let visitedPlaces = new Set();   // จัดการความคืบหน้า Progress บน UI (จำถาวรในหน้านั้น)
-let checkedInPlaces = new Set(); // จัดการประวัติการกดปุ่มเช็คอิน ป้องกันการส่งขึ้น Firebase ซ้ำ
+let announcedPlaces = new Set(); 
+let checkedInPlaces = new Set(); // ประวัติการเช็คอินถาวร
 let watchId = null;
 
-// Firebase Session และพิกัดปัจจุบัน
+// Lock State ป้องกันการกระตุกหรือกดซ้ำ
+let isCheckingIn = false;
+
+// Firebase Session
 let sessionDocRef = null;
 let sessionStartTime = null;
 let currentLat = null;
@@ -36,9 +42,9 @@ let currentLng = null;
 let currentHeading = 0;
 let targetLat = null;
 let targetLng = null;
-let activeCheckInLocation = null; // เก็บข้อมูลสถานที่ปัจจุบันที่สามารถกดเช็คอินได้
+let activeCheckInLocation = null; 
 
-// โหลดข้อมูลจาก Google Sheet
+// โหลดข้อมูล
 function fetchLocations() {
     Papa.parse(CSV_URL, {
         download: true,
@@ -56,7 +62,7 @@ function fetchLocations() {
     });
 }
 
-// คำนวณระยะทางทางภูมิศาสตร์ (Haversine Formula)
+// คำนวณระยะทาง
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
     const φ1 = lat1 * Math.PI/180;
@@ -68,7 +74,7 @@ function getDistance(lat1, lon1, lat2, lon2) {
     return R * c; 
 }
 
-// คำนวณองศาทิศทางระหว่างพิกัดสองจุด (Bearing Angle)
+// คำนวณองศาทิศทาง
 function getBearing(lat1, lon1, lat2, lon2) {
     const toRad = Math.PI / 180;
     const toDeg = 180 / Math.PI;
@@ -81,7 +87,7 @@ function getBearing(lat1, lon1, lat2, lon2) {
     return (bearing + 360) % 360; 
 }
 
-// อัปเดตและหมุนหัวลูกศรทิศทางนำทาง
+// หมุนลูกศร
 function updateArrow() {
     if (targetLat === null || targetLng === null || currentLat === null || currentLng === null) return;
     const bearing = getBearing(currentLat, currentLng, targetLat, targetLng);
@@ -92,7 +98,7 @@ function updateArrow() {
     }
 }
 
-// ระบบเสียงพูดสังเคราะห์ Text-to-Speech (3 ภาษา)
+// ระบบพูดออกเสียง
 function speak(text, lang) {
     if (!text) return;
     const utterance = new SpeechSynthesisUtterance(text);
@@ -101,7 +107,7 @@ function speak(text, lang) {
     window.speechSynthesis.speak(utterance);
 }
 
-// สร้างเซสชันบันทึกข้อมูลหลักลงใน Firebase
+// สร้างเซสชัน
 async function startFirebaseSession() {
     sessionStartTime = new Date();
     try {
@@ -118,7 +124,7 @@ async function startFirebaseSession() {
     }
 }
 
-// ซิงค์พิกัดผู้ใช้ลงเซสชันฐานข้อมูลหลักทุกๆ 15 วินาที
+// ซิงค์พิกัดผู้ใช้
 setInterval(async () => {
     if (sessionDocRef && currentLat && currentLng && sessionStartTime) {
         const duration = Math.floor((new Date() - sessionStartTime) / 1000); 
@@ -132,7 +138,7 @@ setInterval(async () => {
     }
 }, 15000);
 
-// เริ่มการติดตามตำแหน่ง (Geolocation API)
+// เริ่มการติดตามตำแหน่ง
 function startTracking() {
     if (!navigator.geolocation) {
         alert("เบราว์เซอร์ไม่รองรับระบบระบุตำแหน่ง GPS");
@@ -158,30 +164,35 @@ function startTracking() {
             locations.forEach(loc => {
                 const distance = getDistance(currentLat, currentLng, parseFloat(loc.lat), parseFloat(loc.lng));
                 
-                // ค้นหาจุดนิทรรศการที่ใกล้ที่สุดในทุกๆ พื้นที่ เพื่อบอกระยะทางและทิศทาง
-                if (distance < minAbsoluteDistance) {
-                    minAbsoluteDistance = distance;
-                    absoluteNearestLoc = loc;
-                }
-                
-                // ตรวจสอบพื้นที่ในระยะรัศมีเป้าหมาย 50 เมตร
-                if (distance <= 50) {
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestLocation = loc;
+                // กรองเอาเฉพาะจุดที่ "ยังไม่ได้เช็คอิน" มาเป็นเป้าหมายนำทาง
+                if (!checkedInPlaces.has(loc.id)) {
+                    if (distance < minAbsoluteDistance) {
+                        minAbsoluteDistance = distance;
+                        absoluteNearestLoc = loc;
+                    }
+                    
+                    if (distance <= 50) {
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            closestLocation = loc;
+                        }
                     }
                 }
                 
-                // ล้างสถานะคิวเสียงอ่านสปีชเมื่อผู้ใช้ออกจากรัศมี 80 เมตร
+                // ล้างความจำเสียงเมื่อห่างเกิน 80 เมตร
                 if (distance > 80 && announcedPlaces.has(loc.id)) {
                     announcedPlaces.delete(loc.id);
                 }
             });
 
-            // อัปเดตลูกศรนำทาง, ชื่อสถานที่ และตัวเลขระยะทางแบบเรียลไทม์
+            const compassWrap = document.getElementById('compassWrap');
+
+            // อัปเดตลูกศรนำทางและระยะทางไปยังเป้าหมายที่ยังไม่ได้ไป
             if (absoluteNearestLoc) {
                 targetLat = parseFloat(absoluteNearestLoc.lat);
                 targetLng = parseFloat(absoluteNearestLoc.lng);
+                
+                if (compassWrap && !compassWrap.classList.contains('active')) compassWrap.classList.add('active');
                 updateArrow(); 
                 
                 const nameEl = document.getElementById('targetName');
@@ -198,34 +209,36 @@ function startTracking() {
                         distEl.innerText = Math.round(minAbsoluteDistance) + " ม.";
                     }
                 }
+            } else {
+                // กรณีที่สำรวจครบหมดทุกจุดแล้ว (เช็คอินครบแล้ว)
+                if (compassWrap) compassWrap.classList.remove('active');
+                
+                const nameEl = document.getElementById('targetName');
+                if (nameEl) nameEl.innerText = "🎉 สำรวจครบทุกจุดแล้ว!";
+                
+                const distEl = document.getElementById('distanceValue');
+                if (distEl) distEl.innerText = "-";
             }
 
-            // จัดการเมื่อผู้ใช้เข้าสู่รัศมี 50 เมตร (เริ่มสปีชเสียงพูด + แสดงปุ่มเช็คอิน)
+            // จัดการเมื่อผู้ใช้เข้าสู่รัศมี 50 เมตร ของจุดที่ยังไม่เช็คอิน
             if (closestLocation) {
                 activeCheckInLocation = closestLocation;
                 const checkInBtn = document.getElementById('checkInBtn');
                 
-                if (checkInBtn && !checkInBtn.classList.contains('active')) {
+                if (checkInBtn && !isCheckingIn) {
+                    checkInBtn.classList.add('active');
                     const locName = closestLocation.name_th || closestLocation.name || closestLocation.title_th || "จุดกิจกรรม";
                     
-                    // ปรับเปลี่ยนข้อความบนปุ่มกดและเปิดปุ่มขึ้นมา
-                    if (checkedInPlaces.has(closestLocation.id)) {
-                        checkInBtn.innerText = "🎉 เช็คอินสำเร็จแล้ว!";
-                        checkInBtn.disabled = true;
-                    } else {
-                        checkInBtn.innerText = `✅ กดเพื่อเช็คอินที่: ${locName}`;
+                    const targetText = `✅ กดเพื่อเช็คอินที่: ${locName}`;
+                    if (checkInBtn.innerText !== targetText) {
+                        checkInBtn.innerText = targetText;
                         checkInBtn.disabled = false;
                     }
-                    checkInBtn.classList.add('active');
                 }
 
-                // จัดการเรื่องการแจ้งเตือนเสียงสปีชและเอฟเฟกต์หน้าจอกระพริบ
+                // จัดการเสียงพูดและการกระพริบหน้าจอ
                 if (!announcedPlaces.has(closestLocation.id)) {
                     announcedPlaces.add(closestLocation.id); 
-                    
-                    visitedPlaces.add(closestLocation.id);
-                    const visitedEl = document.getElementById('visitedCount');
-                    if(visitedEl) visitedEl.innerText = visitedPlaces.size;
 
                     window.speechSynthesis.cancel(); 
                     
@@ -242,10 +255,10 @@ function startTracking() {
                     speak(closestLocation.info_cn, 'zh-CN');
                 }
             } else {
-                // หากไม่ได้อยู่ในรัศมีกิจกรรม 50 เมตรของจุดใดเลย ให้ซ่อนปุ่มเช็คอินออกไป
+                // ถ้ายืนอยู่ไกลเกิน 50 เมตร หรือจุดนั้นเช็คอินไปแล้ว ให้ซ่อนปุ่ม
                 activeCheckInLocation = null;
                 const checkInBtn = document.getElementById('checkInBtn');
-                if (checkInBtn) {
+                if (checkInBtn && !isCheckingIn) {
                     checkInBtn.classList.remove('active');
                 }
             }
@@ -257,9 +270,12 @@ function startTracking() {
     );
 }
 
-// สั่งงานพฤติกรรมเมื่อคลิกปุ่มเช็คอินสถานที่นิทรรศการ
+// เช็คอินสถานที่
 document.getElementById('checkInBtn').addEventListener('click', async () => {
-    if (!activeCheckInLocation) return;
+    // ป้องกันการกดซ้ำซ้อน
+    if (!activeCheckInLocation || isCheckingIn) return;
+    
+    isCheckingIn = true;
     
     const checkInBtn = document.getElementById('checkInBtn');
     checkInBtn.disabled = true;
@@ -269,7 +285,6 @@ document.getElementById('checkInBtn').addEventListener('click', async () => {
     const locName = activeCheckInLocation.name_th || activeCheckInLocation.name || activeCheckInLocation.title_th || "ไม่ระบุชื่อ";
 
     try {
-        // บันทึกประวัติส่งไปคอลเลกชันฐานข้อมูล Firebase (Firestore) แยกเป็นเอกเทศ
         await addDoc(collection(db, "checkins"), {
             session_id: sessionDocRef ? sessionDocRef.id : "anonymous_session",
             location_id: locId,
@@ -279,18 +294,30 @@ document.getElementById('checkInBtn').addEventListener('click', async () => {
             checkin_lng: currentLng
         });
 
-        // จำเก็บค่าไว้ในเซสชันหน้านั้นถาวร เพื่อไม่ให้ผู้ใช้กดยิงซ้ำไปที่คอลเลกชันเดิมได้อีก
+        // บันทึกความจำว่าจุดนี้เช็คอินไปแล้ว
         checkedInPlaces.add(locId);
-        checkInBtn.innerText = "🎉 เช็คอินสำเร็จแล้ว!";
+        
+        // อัปเดตตัวเลข Progress สำรวจแล้ว
+        const visitedEl = document.getElementById('visitedCount');
+        if(visitedEl) visitedEl.innerText = checkedInPlaces.size;
+
+        checkInBtn.innerText = "🎉 เช็คอินสำเร็จ!";
+        
+        // หน่วงเวลา 1.5 วินาทีเพื่อให้ผู้ใช้เห็นว่าสำเร็จ จากนั้นซ่อนปุ่มและหาเป้าหมายใหม่
+        setTimeout(() => {
+            checkInBtn.classList.remove('active');
+            isCheckingIn = false;
+        }, 1500);
         
     } catch (error) {
         console.error("Firebase Store Checkin Error: ", error);
         checkInBtn.innerText = "❌ เกิดข้อผิดพลาด ลองใหม่อีกครั้ง";
         checkInBtn.disabled = false;
+        isCheckingIn = false;
     }
 });
 
-// เปิดใช้งานองค์ประกอบ UI ระบบนำทางทั้งหมดเมื่อกดยืนยันปุ่มเริ่มต้น
+// เปิดใช้งานองค์ประกอบทั้งหมดเมื่อกดยืนยันปุ่มเริ่มต้น
 document.getElementById('startBtn').addEventListener('click', async () => {
     
     document.getElementById('startBtn').style.display = 'none';
@@ -318,7 +345,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
             window.addEventListener('deviceorientation', handleOrientation);
         }
     } catch (error) {
-        console.warn("ไม่สามารถตรวจจับฮาร์ดแวร์เข็มทิศได้เนื่องจากข้อจำกัดโปรโตคอล");
+        console.warn("ไม่สามารถตรวจจับฮาร์ดแวร์เข็มทิศได้");
     }
 
     startTracking();
