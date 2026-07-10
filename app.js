@@ -20,16 +20,16 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const analytics = getAnalytics(app);
 
-// Google Sheet Setup (อัปเดต ID ใหม่)
+// Google Sheet Setup
 const SHEET_ID = '1WQ790i1c8STFzWZEDtuK_NXg202lqEIh4OHfQ8qYGHo'; 
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 
 let locations = [];
 let announcedPlaces = new Set(); 
-let checkedInPlaces = new Set(); // ประวัติการเช็คอินถาวร
+let checkedInPlaces = new Set(); 
 let watchId = null;
 
-// Lock State ป้องกันการกระตุกหรือกดซ้ำ
+// Lock State ป้องกันการทำงานซ้ำ
 let isCheckingIn = false;
 
 // Firebase Session
@@ -38,13 +38,13 @@ let sessionStartTime = null;
 let currentLat = null;
 let currentLng = null;
 
-// เข็มทิศนำทางและตัวแปรเช็คอิน
+// เข็มทิศและตำแหน่งเป้าหมาย
 let currentHeading = 0;
 let targetLat = null;
 let targetLng = null;
 let activeCheckInLocation = null; 
 
-// โหลดข้อมูล
+// โหลดข้อมูลจาก Google Sheet
 function fetchLocations() {
     Papa.parse(CSV_URL, {
         download: true,
@@ -62,7 +62,7 @@ function fetchLocations() {
     });
 }
 
-// คำนวณระยะทาง
+// คำนวณระยะทาง (Haversine Formula)
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
     const φ1 = lat1 * Math.PI/180;
@@ -87,7 +87,7 @@ function getBearing(lat1, lon1, lat2, lon2) {
     return (bearing + 360) % 360; 
 }
 
-// หมุนลูกศร
+// หมุนลูกศรเข็มทิศ
 function updateArrow() {
     if (targetLat === null || targetLng === null || currentLat === null || currentLng === null) return;
     const bearing = getBearing(currentLat, currentLng, targetLat, targetLng);
@@ -107,7 +107,7 @@ function speak(text, lang) {
     window.speechSynthesis.speak(utterance);
 }
 
-// สร้างเซสชัน
+// สร้างเซสชันใน Firebase
 async function startFirebaseSession() {
     sessionStartTime = new Date();
     try {
@@ -124,7 +124,7 @@ async function startFirebaseSession() {
     }
 }
 
-// ซิงค์พิกัดผู้ใช้
+// อัปเดตตำแหน่งผู้ใช้งานลง Firebase ทุก ๆ 15 วินาที
 setInterval(async () => {
     if (sessionDocRef && currentLat && currentLng && sessionStartTime) {
         const duration = Math.floor((new Date() - sessionStartTime) / 1000); 
@@ -138,7 +138,7 @@ setInterval(async () => {
     }
 }, 15000);
 
-// เริ่มการติดตามตำแหน่ง
+// ระบบติดตามพิกัด GPS ของผู้ใช้
 function startTracking() {
     if (!navigator.geolocation) {
         alert("เบราว์เซอร์ไม่รองรับระบบระบุตำแหน่ง GPS");
@@ -164,7 +164,7 @@ function startTracking() {
             locations.forEach(loc => {
                 const distance = getDistance(currentLat, currentLng, parseFloat(loc.lat), parseFloat(loc.lng));
                 
-                // กรองเอาเฉพาะจุดที่ "ยังไม่ได้เช็คอิน" มาเป็นเป้าหมายนำทาง
+                // ค้นหาจุดกิจกรรมที่อยู่ใกล้ที่สุดและยังไม่ได้กดเช็คอิน
                 if (!checkedInPlaces.has(loc.id)) {
                     if (distance < minAbsoluteDistance) {
                         minAbsoluteDistance = distance;
@@ -179,7 +179,7 @@ function startTracking() {
                     }
                 }
                 
-                // ล้างความจำเสียงเมื่อห่างเกิน 80 เมตร
+                // รีเซ็ตสถานะการประกาศเสียงพูดเมื่อห่างเกิน 80 เมตร
                 if (distance > 80 && announcedPlaces.has(loc.id)) {
                     announcedPlaces.delete(loc.id);
                 }
@@ -187,7 +187,7 @@ function startTracking() {
 
             const compassWrap = document.getElementById('compassWrap');
 
-            // อัปเดตลูกศรนำทางและระยะทางไปยังเป้าหมายที่ยังไม่ได้ไป
+            // อัปเดต UI ทิศทางและระยะทางไปยังเป้าหมายที่อยู่ใกล้ที่สุด
             if (absoluteNearestLoc) {
                 targetLat = parseFloat(absoluteNearestLoc.lat);
                 targetLng = parseFloat(absoluteNearestLoc.lng);
@@ -210,22 +210,20 @@ function startTracking() {
                     }
                 }
 
-                // --- เพิ่มโค้ดส่วนนี้: อัปเดตภาพหน้าปกของจุดที่อยู่ใกล้ที่สุด ---
+                // อัปเดตลิงก์รูปภาพปกกิจกรรมจากคอลัมน์ image_url ใน Google Sheet
                 const coverImgEl = document.getElementById('eventCover');
                 if (coverImgEl) {
-                    // ดึงลิงก์จากคอลัมน์ชื่อ image_url ใน Google Sheet
                     const imageUrl = absoluteNearestLoc.image_url; 
                     if (imageUrl) {
                         coverImgEl.src = imageUrl;
                         coverImgEl.style.display = 'block';
                     } else {
-                        coverImgEl.style.display = 'none'; // ซ่อนรูปหากไม่ได้ใส่ลิงก์
+                        coverImgEl.style.display = 'none'; 
                     }
                 }
-                // -----------------------------------------------------
 
             } else {
-                // กรณีที่สำรวจครบหมดทุกจุดแล้ว (เช็คอินครบแล้ว)
+                // กรณีเดินครบทุกจุดกิจกรรมในระบบแล้ว
                 if (compassWrap) compassWrap.classList.remove('active');
                 
                 const nameEl = document.getElementById('targetName');
@@ -234,13 +232,11 @@ function startTracking() {
                 const distEl = document.getElementById('distanceValue');
                 if (distEl) distEl.innerText = "-";
 
-                // --- เพิ่มโค้ดส่วนนี้: ซ่อนภาพเมื่อสำรวจครบหมดแล้ว ---
                 const coverImgEl = document.getElementById('eventCover');
                 if (coverImgEl) coverImgEl.style.display = 'none';
-                // ---------------------------------------------
             }
 
-            // จัดการเมื่อผู้ใช้เข้าสู่รัศมี 50 เมตร ของจุดที่ยังไม่เช็คอิน
+            // จัดการเงื่อนไขเมื่อเดินเข้ามาในระยะรัศมี 50 เมตร
             if (closestLocation) {
                 activeCheckInLocation = closestLocation;
                 const checkInBtn = document.getElementById('checkInBtn');
@@ -256,7 +252,7 @@ function startTracking() {
                     }
                 }
 
-                // จัดการเสียงพูดและการกระพริบหน้าจอ
+                // สั่งการกระพริบหน้าจอสีเขียวและแสดงข้อมูลเสียงพูดเมื่อเข้าพิกัดครั้งแรก
                 if (!announcedPlaces.has(closestLocation.id)) {
                     announcedPlaces.add(closestLocation.id); 
 
@@ -275,7 +271,6 @@ function startTracking() {
                     speak(closestLocation.info_cn, 'zh-CN');
                 }
             } else {
-                // ถ้ายืนอยู่ไกลเกิน 50 เมตร หรือจุดนั้นเช็คอินไปแล้ว ให้ซ่อนปุ่ม
                 activeCheckInLocation = null;
                 const checkInBtn = document.getElementById('checkInBtn');
                 if (checkInBtn && !isCheckingIn) {
@@ -290,13 +285,11 @@ function startTracking() {
     );
 }
 
-// เช็คอินสถานที่
+// บันทึกรายงานการเช็คอินพิกัดสถานที่ลงในระบบ Firebase
 document.getElementById('checkInBtn').addEventListener('click', async () => {
-    // ป้องกันการกดซ้ำซ้อน
     if (!activeCheckInLocation || isCheckingIn) return;
     
     isCheckingIn = true;
-    
     const checkInBtn = document.getElementById('checkInBtn');
     checkInBtn.disabled = true;
     checkInBtn.innerText = "⏳ กำลังบันทึกการเช็คอิน...";
@@ -314,16 +307,13 @@ document.getElementById('checkInBtn').addEventListener('click', async () => {
             checkin_lng: currentLng
         });
 
-        // บันทึกความจำว่าจุดนี้เช็คอินไปแล้ว
         checkedInPlaces.add(locId);
         
-        // อัปเดตตัวเลข Progress สำรวจแล้ว
         const visitedEl = document.getElementById('visitedCount');
         if(visitedEl) visitedEl.innerText = checkedInPlaces.size;
 
         checkInBtn.innerText = "🎉 เช็คอินสำเร็จ!";
         
-        // หน่วงเวลา 1.5 วินาทีเพื่อให้ผู้ใช้เห็นว่าสำเร็จ จากนั้นซ่อนปุ่มและหาเป้าหมายใหม่
         setTimeout(() => {
             checkInBtn.classList.remove('active');
             isCheckingIn = false;
@@ -337,9 +327,8 @@ document.getElementById('checkInBtn').addEventListener('click', async () => {
     }
 });
 
-// เปิดใช้งานองค์ประกอบทั้งหมดเมื่อกดยืนยันปุ่มเริ่มต้น
+// เริ่มทำงานเมื่อกดปุ่ม "เริ่มต้นนำทาง"
 document.getElementById('startBtn').addEventListener('click', async () => {
-    
     document.getElementById('startBtn').style.display = 'none';
     document.getElementById('compassWrap')?.classList.add('active');
     document.getElementById('radarWrap')?.classList.add('active');
