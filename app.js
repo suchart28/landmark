@@ -107,6 +107,33 @@ function speak(text, lang) {
     window.speechSynthesis.speak(utterance);
 }
 
+// ฟังก์ชันตรวจสอบและคำนวณสถานะเวลาของนิทรรศการ
+function getExhibitionStatus(loc) {
+    if (!loc.start_date || !loc.end_date || !loc.open_time || !loc.close_time) return null;
+
+    const now = new Date();
+    const currentTimeStr = now.toTimeString().substring(0, 5); // ได้ค่า "HH:MM"
+
+    const startDate = new Date(loc.start_date);
+    const endDate = new Date(loc.end_date);
+    endDate.setHours(23, 59, 59, 999); // ให้นับถึงสิ้นสุดวันของ end_date
+
+    if (now < startDate) {
+        return `🗓️ เริ่มจัดแสดงวันที่ ${loc.start_date}`;
+    } else if (now > endDate) {
+        return `⛔ สิ้นสุดการจัดแสดงแล้ว`;
+    } else {
+        // อยู่ในช่วงวันที่จัดแสดง เช็คเวลาเปิด-ปิดต่อ
+        if (currentTimeStr < loc.open_time) {
+            return `🔴 ยังไม่เปิด (รอบถัดไปเวลา ${loc.open_time} น.)`;
+        } else if (currentTimeStr > loc.close_time) {
+            return `🔴 ปิดแล้ววันนี้ (เปิดอีกครั้งพรุ่งนี้เวลา ${loc.open_time} น.)`;
+        } else {
+            return `🟢 กำลังจัดแสดง (จนถึงเวลา ${loc.close_time} น.)`;
+        }
+    }
+}
+
 // สร้างเซสชันใน Firebase
 async function startFirebaseSession() {
     sessionStartTime = new Date();
@@ -210,7 +237,7 @@ function startTracking() {
                     }
                 }
 
-                // อัปเดตลิงก์รูปภาพปกกิจกรรมจากคอลัมน์ image_url ใน Google Sheet
+                // อัปเดตลิงก์รูปภาพปกกิจกรรม
                 const coverImgEl = document.getElementById('eventCover');
                 if (coverImgEl) {
                     const imageUrl = absoluteNearestLoc.image_url; 
@@ -219,6 +246,30 @@ function startTracking() {
                         coverImgEl.style.display = 'block';
                     } else {
                         coverImgEl.style.display = 'none'; 
+                    }
+                }
+                
+                // อัปเดตสถานะเวลาจัดแสดง
+                const statusEl = document.getElementById('eventStatus');
+                if (statusEl) {
+                    const statusText = getExhibitionStatus(absoluteNearestLoc);
+                    if (statusText) {
+                        // เปลี่ยนสีข้อความตามสถานะ
+                        if (statusText.includes('🟢')) {
+                            statusEl.style.color = '#a5d6a7'; // สีเขียว
+                            statusEl.style.border = '1px solid #4caf50';
+                        } else if (statusText.includes('🔴') || statusText.includes('⛔')) {
+                            statusEl.style.color = '#ffab91'; // สีแดง/ส้ม
+                            statusEl.style.border = '1px solid #ff5722';
+                        } else {
+                            statusEl.style.color = '#fff';
+                            statusEl.style.border = '1px solid #aaa';
+                        }
+                        
+                        statusEl.innerText = statusText;
+                        statusEl.style.display = 'block';
+                    } else {
+                        statusEl.style.display = 'none'; 
                     }
                 }
 
@@ -234,6 +285,9 @@ function startTracking() {
 
                 const coverImgEl = document.getElementById('eventCover');
                 if (coverImgEl) coverImgEl.style.display = 'none';
+                
+                const statusEl = document.getElementById('eventStatus');
+                if (statusEl) statusEl.style.display = 'none';
             }
 
             // จัดการเงื่อนไขเมื่อเดินเข้ามาในระยะรัศมี 50 เมตร
